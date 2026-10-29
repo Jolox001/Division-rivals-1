@@ -1,0 +1,360 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EA FC 27 Division Rivals Live Overlay</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Industry/Futuristic feel -->
+    <link href="https://fonts.googleapis.com/css2?family=Teko:wght@500;600;700&family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        eaDark: '#0b0e14',
+                        eaCard: '#131822',
+                        eaCyan: '#00f0ff',
+                        eaGold: '#ffb700',
+                        eaGoldBright: '#ffe600',
+                        eaGreen: '#00ff87',
+                        eaRed: '#ff2a5f',
+                    },
+                    fontFamily: {
+                        teko: ['Teko', 'sans-serif'],
+                        inter: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #05070a;
+            color: #ffffff;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            user-select: none;
+        }
+
+        .font-teko {
+            font-family: 'Teko', sans-serif;
+        }
+
+        /* FC EA Visual Theme Effects */
+        .glass-panel {
+            background: linear-gradient(135deg, rgba(20, 26, 38, 0.85) 0%, rgba(10, 13, 20, 0.95) 100%);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+        }
+
+        .gold-gradient-text {
+            background: linear-gradient(180deg, #fff7bd 0%, #ffc400 60%, #b88600 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .gold-border {
+            border-color: #ffc400;
+            box-shadow: 0 0 15px rgba(255, 196, 0, 0.3);
+        }
+
+        .cyan-glow {
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.4);
+        }
+
+        .green-glow {
+            box-shadow: 0 0 20px rgba(0, 255, 135, 0.6);
+        }
+
+        /* Animated Flame/Streak Glow */
+        @keyframes pulse-streak {
+            0%, 100% {
+                transform: scale(1);
+                box-shadow: 0 0 15px rgba(255, 183, 0, 0.6), inset 0 0 10px rgba(255, 230, 0, 0.4);
+            }
+            50% {
+                transform: scale(1.08);
+                box-shadow: 0 0 25px rgba(255, 183, 0, 0.9), inset 0 0 15px rgba(255, 230, 0, 0.8);
+            }
+        }
+
+        .streak-active {
+            animation: pulse-streak 1.5s infinite ease-in-out;
+            border-color: #ffe600 !important;
+            background: radial-gradient(circle, rgba(255, 183, 0, 0.25) 0%, rgba(19, 24, 34, 0.9) 100%) !important;
+        }
+
+        /* Step Nodes Base Style */
+        .step-node {
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        /* Hexagonal / Shield Division Badge */
+        .div-badge {
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+        }
+        
+        .shield-badge {
+            clip-path: polygon(0 0, 100% 0, 100% 75%, 50% 100%, 0 75%);
+        }
+
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #ffc400;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-start p-2 sm:p-4">
+
+    <!-- Top Mode Toggle Bar (Invisible in Stream OBS if window cropped, or toggled) -->
+    <div id="top-bar" class="w-full max-w-md flex items-center justify-between mb-3 px-3 py-2 glass-panel rounded-xl text-xs">
+        <div class="flex items-center space-x-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-eaGreen animate-ping"></span>
+            <span class="font-bold tracking-wider text-gray-200">FC 27 RIVALS OBS OVERLAY</span>
+        </div>
+        <button id="toggle-clean-btn" onclick="toggleStreamMode()" class="px-3 py-1 bg-eaGold/20 hover:bg-eaGold/40 border border-eaGold/50 rounded font-bold text-eaGold flex items-center gap-1.5 transition">
+            <i class="fa-solid fa-eye"></i> <span id="clean-btn-text">Streamer HUD Mode</span>
+        </button>
+    </div>
+
+    <!-- MAIN OVERLAY CONTAINER (Optimized for 9:16 Portrait Capture) -->
+    <div id="overlay-container" class="w-full max-w-md glass-panel rounded-2xl border border-white/10 p-4 relative overflow-hidden flex flex-col gap-4">
+        
+        <!-- Background Decorative Cyber Grid Pattern -->
+        <div class="absolute inset-0 bg-[radial-gradient(#00f0ff_1px,transparent_1px)] [background-size:16px_16px] opacity-10 pointer-events-none"></div>
+        <div class="absolute top-0 right-0 -mr-16 -mt-16 w-48 h-48 bg-eaCyan/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute bottom-0 left-0 -ml-16 -mb-16 w-48 h-48 bg-eaGold/10 rounded-full blur-3xl pointer-events-none"></div>
+
+        <!-- 1. Header Info Banner -->
+        <div class="relative z-10 flex items-center justify-between border-b border-white/10 pb-3">
+            <div>
+                <div class="flex items-center gap-2">
+                    <span class="px-2 py-0.5 text-[10px] font-extrabold tracking-widest bg-eaGold text-black uppercase rounded">Rivals Live</span>
+                    <span id="competition-status" class="text-xs text-gray-400 font-semibold uppercase tracking-wider flex items-center gap-1">
+                        <i class="fa-solid fa-trophy text-eaGold text-[10px]"></i> Competing
+                    </span>
+                </div>
+                <h1 class="text-2xl font-teko tracking-wide uppercase font-bold text-white leading-tight mt-0.5">
+                    Division Rivals Standings
+                </h1>
+            </div>
+            
+            <!-- Rewards Countdown Tracker -->
+            <div class="text-right">
+                <div class="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Rewards In</div>
+                <div id="timer-display" class="font-teko text-xl text-eaCyan tracking-wider leading-none">
+                    2D 14H 30M
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Current Division Banner & Status Summary -->
+        <div class="relative z-10 bg-black/40 rounded-xl p-3 border border-white/5 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <!-- Left Shield Badge for Current Div -->
+                <div class="relative">
+                    <div id="div-badge-graphic" class="w-12 h-14 bg-gradient-to-b from-slate-700 to-slate-900 border-2 border-eaCyan flex items-center justify-center shield-badge shadow-lg">
+                        <span id="badge-div-num" class="font-teko text-3xl font-bold gold-gradient-text leading-none mt-1">4</span>
+                    </div>
+                    <!-- Checkpoint Icon overlay -->
+                    <div id="checkpoint-shield-indicator" class="absolute -bottom-1 -right-1 bg-eaCyan text-black text-[9px] font-black px-1 rounded-full border border-black hidden">
+                        <i class="fa-solid fa-shield"></i>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="text-xs text-gray-400 font-medium">CURRENT DIVISION</div>
+                    <div id="current-div-title" class="font-teko text-2xl font-bold text-white tracking-wide uppercase leading-none">
+                        DIVISION 4
+                    </div>
+                    <div class="text-[11px] text-eaCyan flex items-center gap-1 mt-0.5 font-semibold">
+                        <span id="stage-checkpoint-text">Stage: Step IX</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Streak Boost Status Widget -->
+            <div class="text-right flex flex-col items-end">
+                <div id="streak-badge" class="px-2.5 py-1 rounded-lg bg-gray-800/80 border border-gray-700 flex items-center gap-1.5 transition-all">
+                    <i id="streak-icon" class="fa-solid fa-bolt text-gray-500 text-xs"></i>
+                    <span id="streak-text" class="text-xs font-bold text-gray-400">NO BOOST</span>
+                </div>
+                <div id="multiplier-tag" class="text-[10px] text-eaGold font-extrabold uppercase mt-1 opacity-0 transition-opacity flex items-center gap-1">
+                    <i class="fa-solid fa-angles-up animate-bounce"></i> 2x WIN BOOST ACTIVE
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. MAIN RIVALS LADDER STEP PROGRESSION TRACKER -->
+        <div class="relative z-10 my-1 py-4 px-2 bg-slate-950/60 rounded-xl border border-white/10 flex flex-col justify-center">
+            
+            <!-- Ladder Horizontal Track Container -->
+            <div class="relative w-full flex items-center justify-between px-2">
+
+                <!-- Connecting Background Line Track -->
+                <div class="absolute left-6 right-6 top-1/2 -translate-y-1/2 h-2 bg-slate-800 rounded-full z-0 overflow-hidden">
+                    <div id="progress-fill-line" class="h-full bg-gradient-to-r from-eaCyan via-eaGold to-eaGoldBright transition-all duration-500 w-[60%]"></div>
+                </div>
+
+                <!-- Start Node (Current Div Base) -->
+                <div class="relative z-10 flex flex-col items-center cursor-pointer" onclick="jumpToStep(0)">
+                    <div id="start-node-div" class="w-9 h-9 rounded-lg bg-slate-800 border-2 border-eaCyan flex items-center justify-center font-teko text-xl font-bold text-white shadow-md">
+                        4
+                    </div>
+                    <span class="text-[9px] text-gray-400 font-bold uppercase mt-1">START</span>
+                </div>
+
+                <!-- Dynamic Steps Nodes (I to XII & Next Div Target) -->
+                <div id="ladder-steps-container" class="relative z-10 flex-1 flex items-center justify-around px-1">
+                    <!-- Populated dynamically via JS -->
+                </div>
+
+                <!-- End Node (Next Division Target) -->
+                <div class="relative z-10 flex flex-col items-center">
+                    <div id="end-node-div" class="w-10 h-10 rounded-lg bg-gradient-to-tr from-eaGold to-yellow-200 border-2 border-white flex items-center justify-center font-teko text-2xl font-black text-black shadow-lg">
+                        3
+                    </div>
+                    <span class="text-[9px] text-eaGold font-bold uppercase mt-1">NEXT DIV</span>
+                </div>
+            </div>
+
+            <!-- Current Step Details & Indicator Marker -->
+            <div class="mt-4 pt-2 border-t border-white/5 flex items-center justify-between text-xs px-2">
+                <div class="flex items-center gap-2">
+                    <span class="text-gray-400">Streak Count:</span>
+                    <span id="streak-count-num" class="font-bold text-eaGold bg-eaGold/10 px-2 py-0.5 rounded border border-eaGold/30">0 Wins</span>
+                </div>
+                <div id="step-status-desc" class="text-eaCyan font-semibold flex items-center gap-1">
+                    <i class="fa-solid fa-location-dot"></i> Step IX of XII
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Weekly Rewards Progress Summary Box -->
+        <div class="relative z-10 bg-slate-900/80 rounded-xl p-3 border border-white/5">
+            <div class="flex items-center justify-between mb-1.5">
+                <span class="text-xs font-bold text-gray-300 uppercase tracking-wide flex items-center gap-1.5">
+                    <i class="fa-solid fa-box-open text-eaGold"></i> Weekly Rewards Upgrade
+                </span>
+                <span id="rewards-status-text" class="text-xs font-bold text-eaGreen uppercase bg-eaGreen/10 px-2 py-0.5 rounded border border-eaGreen/30">
+                    Requirements Met
+                </span>
+            </div>
+            <p id="rewards-desc" class="text-[11px] text-gray-400 leading-tight">
+                Play Rivals matches to earn points and upgrade your weekly rewards chest.
+            </p>
+        </div>
+
+        <!-- 5. INTERACTIVE CONTROLLER PANEL (Unrestricted Custom Controls) -->
+        <div id="control-panel" class="relative z-10 flex flex-col gap-3 pt-2 border-t border-white/10">
+            <div class="flex items-center justify-between text-xs text-gray-400 px-1 font-semibold">
+                <span><i class="fa-solid fa-sliders"></i> UNRESTRICTED OVERLAY CONTROLS</span>
+                <span id="checkpoint-status-indicator" class="text-[10px] text-eaCyan font-bold uppercase">
+                    Checkpoints: OFF
+                </span>
+            </div>
+
+            <!-- Match Simulation Action Buttons -->
+            <div class="grid grid-cols-3 gap-2">
+                <button onclick="handleMatchResult('WIN')" class="py-2.5 px-2 rounded-xl bg-gradient-to-b from-emerald-500 to-green-700 hover:from-emerald-400 hover:to-green-600 border border-green-300/40 font-extrabold text-white shadow-lg active:scale-95 transition flex flex-col items-center gap-0.5">
+                    <span class="text-sm font-black flex items-center gap-1"><i class="fa-solid fa-circle-up"></i> +1 WIN</span>
+                    <span class="text-[9px] text-green-100 font-normal">Advance +1 Step</span>
+                </button>
+
+                <button onclick="handleMatchResult('STREAK_WIN')" class="py-2.5 px-2 rounded-xl bg-gradient-to-b from-amber-500 to-yellow-700 hover:from-amber-400 hover:to-yellow-600 border border-yellow-300/40 font-extrabold text-white shadow-lg active:scale-95 transition flex flex-col items-center gap-0.5">
+                    <span class="text-sm font-black flex items-center gap-1"><i class="fa-solid fa-bolt"></i> +2 STREAK</span>
+                    <span class="text-[9px] text-yellow-100 font-normal">Boost Advance +2</span>
+                </button>
+
+                <button onclick="handleMatchResult('LOSS')" class="py-2.5 px-2 rounded-xl bg-gradient-to-b from-rose-600 to-red-800 hover:from-rose-500 hover:to-red-700 border border-red-400/40 font-extrabold text-white shadow-lg active:scale-95 transition flex flex-col items-center gap-0.5">
+                    <span class="text-sm font-black flex items-center gap-1"><i class="fa-solid fa-circle-down"></i> -1 LOSS</span>
+                    <span class="text-[9px] text-red-100 font-normal">Drop & Relegate</span>
+                </button>
+            </div>
+
+            <!-- Direct Division Change Buttons & Step Slider -->
+            <div class="grid grid-cols-2 gap-2">
+                <button onclick="promoteDivision()" class="py-2 px-3 bg-cyan-600/30 hover:bg-cyan-600/50 border border-eaCyan/50 rounded-lg text-eaCyan text-xs font-bold flex items-center justify-center gap-1 transition">
+                    <i class="fa-solid fa-arrow-up"></i> Promote (+1 Div)
+                </button>
+                <button onclick="demoteDivision()" class="py-2 px-3 bg-red-600/30 hover:bg-red-600/50 border border-red-500/50 rounded-lg text-red-400 text-xs font-bold flex items-center justify-center gap-1 transition">
+                    <i class="fa-solid fa-arrow-down"></i> Demote (-1 Div)
+                </button>
+            </div>
+
+            <!-- Position Range Slider for Direct Selection -->
+            <div class="bg-slate-900/90 p-2.5 rounded-xl border border-white/10 flex flex-col gap-1">
+                <div class="flex items-center justify-between text-[11px]">
+                    <span class="text-gray-400 font-semibold">Instant Step Position:</span>
+                    <span id="slider-step-val" class="font-bold text-eaGold">Step IX</span>
+                </div>
+                <input type="range" id="direct-step-slider" min="0" max="12" value="9" oninput="onSliderStepChange(this.value)" class="w-full accent-eaGold cursor-pointer h-1.5 bg-slate-800 rounded-lg">
+            </div>
+
+            <!-- Quick Settings Drawer Toggle & Boost Toggle -->
+            <div class="flex items-center justify-between gap-2">
+                <button onclick="toggleCheckpointMode()" id="checkpoint-toggle-btn" class="flex-1 py-1.5 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 border border-white/10 text-xs font-bold text-gray-300 flex items-center justify-center gap-1.5 transition">
+                    <i class="fa-solid fa-shield-halved"></i> Checkpoints: OFF
+                </button>
+
+                <button onclick="toggleStreakManual()" class="flex-1 py-1.5 px-3 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-eaGold/40 text-eaGold text-xs font-bold flex items-center justify-center gap-1.5 transition">
+                    <i class="fa-solid fa-bolt"></i> 2x Boost
+                </button>
+
+                <button onclick="toggleSettingsModal()" class="py-1.5 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 border border-white/10 text-gray-300 text-xs font-semibold flex items-center gap-1.5 transition">
+                    <i class="fa-solid fa-gear"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Notification Toast Box -->
+        <div id="toast-msg" class="absolute bottom-16 left-1/2 -translate-x-1/2 bg-eaGold text-black font-extrabold px-4 py-2 rounded-full text-xs shadow-2xl opacity-0 pointer-events-none transition-all duration-300 z-50 flex items-center gap-2">
+            <i class="fa-solid fa-trophy"></i> <span id="toast-text">Promoted to Division 3!</span>
+        </div>
+
+    </div>
+
+    <!-- SETTINGS MODAL -->
+    <div id="settings-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="w-full max-w-sm glass-panel p-5 rounded-2xl border border-eaGold/30 flex flex-col gap-4">
+            <div class="flex items-center justify-between border-b border-white/10 pb-2">
+                <h3 class="font-teko text-2xl text-eaGold font-bold tracking-wide">STREAM OVERLAY CONFIGURATION</h3>
+                <button onclick="toggleSettingsModal()" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <!-- Div Selection -->
+            <div>
+                <label class="text-xs text-gray-300 font-semibold block mb-1">Select Current Division</label>
+                <select id="setting-div-select" onchange="changeDivision(this.value)" class="w-full bg-slate-900 border border-white/20 rounded-lg p-2 text-sm font-bold text-white focus:outline-none focus:border-eaGold">
+                    <option value="10">Division 10</option>
+                    <option value="9">Division 9</option>
+                    <option value="8">Division 8</option>
+                    <option value="7">Division 7</option>
+                    <option value="6">Division 6</option>
+                    <option value="5">Division 5</option>
+                    <option value="4" selected>Division 4</option>
+                    <option value="3">Division 3</option>
+                    <option value="2">Division 2</option>
+                    <option value="1">Division 1</option>
+                    <option value="0">Elite Division</option>
+                </select>
+            </div>
+
+            <!-- Steps Count -->
+            <div>
+                <label class="text-xs text-gray-300 font-semibold block mb-1">Steps in Division (Ladder Length)</la
